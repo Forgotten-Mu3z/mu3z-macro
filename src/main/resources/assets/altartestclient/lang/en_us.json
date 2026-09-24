@@ -1,0 +1,16 @@
+{
+	"key.category.altartestclient.main": "AltarTestClient",
+	"key.altartestclient.open_gui": "Open settings",
+	"key.altartestclient.panic": "Panic (disable all)",
+	"key.altartestclient.stun_slam": "Toggle Stun Slam",
+	"key.altartestclient.trigger_bot": "Toggle Trigger Bot",
+	"key.altartestclient.aim_assist": "Toggle Aim Assist",
+	"key.altartestclient.auto_totem": "Toggle Auto Totem",
+	"key.altartestclient.auto_crystal": "Toggle Auto Crystal",
+	"key.altartestclient.anchor_macro": "Toggle Anchor Macro",
+	"key.altartestclient.breach_swap": "Toggle Breach Swap",
+	"key.altartestclient.shield_breaker": "Toggle Shield Breaker",
+	"key.altartestclient.pearl_macro": "Pearl Macro (throw)",
+	"key.altartestclient.elytra_swap": "Elytra Swap (swap)",
+	"key.altartestclient.autoclicker": "Toggle Autoclicker"
+}

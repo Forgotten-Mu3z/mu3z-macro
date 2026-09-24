@@ -1,0 +1,119 @@
+{
+  "configVersion": 1,
+  "global": {
+    "allowedServers": [
+      "localhost",
+      "127.0.0.1"
+    ],
+    "allowSingleplayer": true,
+    "hud": true,
+    "hudShowSpeed": true,
+    "logging": true
+  },
+  "modules": {
+    "stun_slam": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "range": 3.0,
+      "crosshairOnly": true,
+      "delayMin": 30,
+      "delayMax": 90,
+      "cooldownMs": 500,
+      "swapBack": true
+    },
+    "trigger_bot": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "delayMin": 60,
+      "delayMax": 140,
+      "jitter": 25,
+      "cooldown": 1.0
+    },
+    "aim_assist": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "fov": 90.0,
+      "range": 4.5,
+      "turnSpeed": 120.0,
+      "aimPoint": "CHEST",
+      "vertical": true,
+      "whileAttacking": false
+    },
+    "auto_totem": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "delayMin": 100,
+      "delayMax": 250,
+      "onlyAfterPop": false,
+      "mainInventoryFirst": true
+    },
+    "auto_crystal": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "targetRange": 8.0,
+      "placeRange": 4.5,
+      "breakRange": 4.5,
+      "maxTargetDistance": 3.5,
+      "placeDelayMin": 80,
+      "placeDelayMax": 160,
+      "breakDelayMin": 50,
+      "breakDelayMax": 120,
+      "rotate": "CAMERA",
+      "place": true,
+      "break": true,
+      "autoSwitch": true
+    },
+    "anchor_macro": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "targetRange": 6.0,
+      "placeRange": 4.5,
+      "maxTargetDistance": 2.5,
+      "charges": 1,
+      "delayMin": 60,
+      "delayMax": 140,
+      "cycleCooldownMs": 600,
+      "rotate": "CAMERA",
+      "swapBack": true
+    },
+    "breach_swap": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "weapon": "BREACH",
+      "playersOnly": true,
+      "restoreDelayMin": 30,
+      "restoreDelayMax": 90
+    },
+    "shield_breaker": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "range": 4.0,
+      "crosshairOnly": true,
+      "reactDelayMin": 90,
+      "reactDelayMax": 200,
+      "autoHit": false,
+      "swapBack": true
+    },
+    "pearl_macro": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "delayMin": 40,
+      "delayMax": 100,
+      "swapBack": true
+    },
+    "elytra_swap": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "delayMin": 50,
+      "delayMax": 120
+    },
+    "autoclicker": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "cps": 12.0,
+      "randomization": 20,
+      "holdToClick": true,
+      "ignoreBlocks": true
+    }
+  }
+}

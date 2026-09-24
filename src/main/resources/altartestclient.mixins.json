@@ -1,0 +1,18 @@
+{
+	"required": true,
+	"package": "net.altarsmp.testclient.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"ClientPacketListenerMixin",
+		"MinecraftInvoker",
+		"MouseHandlerMixin",
+		"MultiPlayerGameModeInvoker",
+		"MultiPlayerGameModeMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

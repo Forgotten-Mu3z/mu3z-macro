@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "altartestclient",
+	"version": "${version}",
+	"name": "AltarTestClient",
+	"description": "Combat-automation test client for exercising the AltarSMP anti-cheat. Only active on allow-listed servers.",
+	"authors": [
+		"AltarSMP"
+	],
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"net.altarsmp.testclient.AltarTestClient"
+		]
+	},
+	"mixins": [
+		"altartestclient.mixins.json"
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
