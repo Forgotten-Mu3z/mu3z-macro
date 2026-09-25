@@ -24,7 +24,7 @@ enabled). Everywhere else no module ticks, no hooks fire, and the HUD shows **In
 ./gradlew runClient    # dev client with the mod loaded
 ```
 
-Put the jar and Fabric API in `.minecraft/mods/` of a Fabric 1.21.11 profile.
+Put the jar and Fabric API in `.minecraft/mods/` of a Fabric 1.21.11 profile. Step-by-step Windows / Modrinth instructions: [BUILDING-ON-WINDOWS.md](BUILDING-ON-WINDOWS.md).
 
 ## First launch
 
