@@ -12,7 +12,7 @@ enabled). Everywhere else no module ticks, no hooks fire, and the HUD shows **In
 |---|---|
 | Minecraft | 1.21.11 (Java Edition) |
 | Mappings | Mojang official (`loom.officialMojangMappings()`) |
-| Fabric Loader | ≥ 0.19.5 |
+| Fabric Loader | ≥ 0.16.0 at runtime (built against 0.19.5) |
 | Fabric API | 0.141.6+1.21.11 |
 | Java | 21 |
 | Build | Gradle 9.5.1 wrapper, Fabric Loom 1.17 (`net.fabricmc.fabric-loom-remap`) |
