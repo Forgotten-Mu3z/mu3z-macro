@@ -19,6 +19,15 @@
 3. Open the extracted folder. `gradlew.bat`, `build.gradle` and `src` must be directly inside. If you
    only see another folder, use that inner folder instead.
 
+## Quick way: build-and-install.bat
+
+Double-click `build-and-install.bat` in the folder. It builds the mod and copies the jar into your
+Modrinth instance's `mods` folder, replacing the old one. The first time, it lists your Modrinth
+instances and asks which one to use (it remembers the answer in `mods-folder.txt`). Close Minecraft
+before running it.
+
+The steps below do the same thing by hand.
+
 ## Build
 
 1. Inside that folder, right-click an empty spot → **Open in Terminal** (on Windows 11 you may need
@@ -43,8 +52,8 @@ cd "C:\Users\<your name>\Desktop\<folder>"
 
 ## Updating after a change
 
-Download the ZIP again, extract it over the old folder, run `.\gradlew.bat build` again, and replace
-the jar in `mods`. Close Minecraft first; Windows won't let you replace a jar the game has loaded.
+Download the ZIP again, extract it over the old folder, and double-click `build-and-install.bat`
+(or run `.\gradlew.bat build` and replace the jar in `mods` yourself). Close Minecraft first; Windows won't let you replace a jar the game has loaded.
 
 ## Common errors
 
