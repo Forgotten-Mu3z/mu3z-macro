@@ -119,6 +119,12 @@
       "randomization": 20,
       "holdToClick": true,
       "ignoreBlocks": true
+    },
+    "jump_reset": {
+      "enabled": false,
+      "speed": "HUMANLIKE",
+      "chance": 80,
+      "maxLateTicks": 1
     }
   }
 }

@@ -49,7 +49,7 @@ class ConfigRoundTripTest {
 				assertTrue(keys.add(setting.key()), "duplicate key " + setting.key() + " in " + module.id());
 			}
 		}
-		assertEquals(11, ModuleManager.all().size());
+		assertEquals(12, ModuleManager.all().size());
 	}
 
 	@Test

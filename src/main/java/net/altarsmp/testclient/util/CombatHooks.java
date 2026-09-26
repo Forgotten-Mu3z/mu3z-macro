@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.phys.Vec3;
 
 /** Attack helpers plus the callbacks invoked from the mixins. */
 public final class CombatHooks {
@@ -51,6 +52,11 @@ public final class CombatHooks {
 	/** From MultiPlayerGameModeMixin, after the attack packet has been sent. */
 	public static void afterAttack(Player attacker, Entity target) {
 		ModuleManager.breachSwap().afterAttack(target);
+	}
+
+	/** From ClientPacketListenerMixin when the server sets our own velocity (knockback), on the client thread. */
+	public static void onOwnKnockback(Vec3 velocity) {
+		ModuleManager.jumpReset().onKnockback(velocity);
 	}
 
 	/** From ClientPacketListenerMixin when an entity-event 35 (totem used) arrives. */

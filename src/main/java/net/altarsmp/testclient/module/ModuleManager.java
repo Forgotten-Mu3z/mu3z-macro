@@ -11,6 +11,7 @@ import net.altarsmp.testclient.module.combat.AutoCrystal;
 import net.altarsmp.testclient.module.combat.AutoTotem;
 import net.altarsmp.testclient.module.combat.Autoclicker;
 import net.altarsmp.testclient.module.combat.BreachSwap;
+import net.altarsmp.testclient.module.combat.JumpReset;
 import net.altarsmp.testclient.module.combat.ShieldBreaker;
 import net.altarsmp.testclient.module.combat.StunSlam;
 import net.altarsmp.testclient.module.combat.TriggerBot;
@@ -24,6 +25,7 @@ public final class ModuleManager {
 	private static final List<Module> MODULES = new ArrayList<>();
 	private static BreachSwap breachSwap;
 	private static AutoTotem autoTotem;
+	private static JumpReset jumpReset;
 	private static long lastPanicMillis;
 
 	private ModuleManager() {
@@ -42,6 +44,7 @@ public final class ModuleManager {
 		register(new PearlMacro());
 		register(new ElytraSwap());
 		register(new Autoclicker());
+		jumpReset = register(new JumpReset());
 	}
 
 	private static <M extends Module> M register(M module) {
@@ -59,6 +62,10 @@ public final class ModuleManager {
 
 	public static AutoTotem autoTotem() {
 		return autoTotem;
+	}
+
+	public static JumpReset jumpReset() {
+		return jumpReset;
 	}
 
 	private static boolean canRun(Minecraft mc) {

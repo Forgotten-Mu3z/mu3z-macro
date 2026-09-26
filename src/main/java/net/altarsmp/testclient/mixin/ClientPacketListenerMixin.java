@@ -5,6 +5,7 @@ import net.altarsmp.testclient.util.ServerClock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
+import net.minecraft.network.protocol.game.ClientboundSetEntityMotionPacket;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
@@ -13,7 +14,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Detects totem pops (entity event 35) and times the server's time-sync packets for {@link ServerClock}.
+ * Detects totem pops (entity event 35), knockback applied to our own player (for Jump Reset), and times the
+ * server's time-sync packets for {@link ServerClock}.
  * Vanilla handlers first run on the network thread and immediately re-queue themselves for the client
  * thread, so HEAD sees each packet twice (network thread first) and TAIL only on the client thread.
  */
@@ -30,6 +32,14 @@ public abstract class ClientPacketListenerMixin {
 		Entity entity = packet.getEntity(mc.level);
 		if (entity != null) {
 			CombatHooks.onTotemPop(entity);
+		}
+	}
+
+	@Inject(method = "handleSetEntityMotion", at = @At("TAIL"))
+	private void altar$onSetEntityMotion(ClientboundSetEntityMotionPacket packet, CallbackInfo ci) {
+		Minecraft mc = Minecraft.getInstance();
+		if (mc.player != null && packet.getId() == mc.player.getId()) {
+			CombatHooks.onOwnKnockback(packet.getMovement());
 		}
 	}
 

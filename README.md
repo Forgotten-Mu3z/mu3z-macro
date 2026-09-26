@@ -68,6 +68,7 @@ actions instead: their ON/OFF toggle *arms* the key, and each key press then per
 | **Pearl Macro** | One key: select pearl, throw, swap back. Uses the offhand directly if it holds pearls. | `SetCarriedItem(pearl)`, `UseItem`, `Swing`, `SetCarriedItem(orig)` |
 | **Elytra Swap** | One key: chestplate ↔ elytra. A hotbar item takes 1 click; a main-inventory item takes 3 clicks. | `ContainerClick(SWAP 6↔hotbar)` or `ContainerClick(PICKUP)` ×3 |
 | **Autoclicker** | Vanilla left clicks at the configured CPS while attack is held (or always). Pauses on blocks so mining still works. | `Interact(ATTACK)` / `Swing` per click |
+| **Jump Reset** | When you're hit on the ground, presses jump so you jump on the very tick the knockback lands, cancelling part of it. Blatant: every hit, never late. Humanlike: *Success chance* % of hits, sometimes up to *Max late ticks* late. Skips when airborne, in liquid, riding, gliding or in a menu. | Normal movement packets with a jump on the knockback tick |
 
 Each module file begins with a short comment describing how it works
 (`src/main/java/net/altarsmp/testclient/module/...`).
@@ -164,7 +165,7 @@ src/main/java/net/altarsmp/testclient/
 ├── module/                       Module base, ModuleManager, ActionLock, SpeedMode, RotateMode
 │   ├── setting/                  Boolean/Int/Double/Enum settings
 │   ├── combat/                   Stun Slam, Trigger Bot, Aim Assist, Auto Totem, Auto Crystal,
-│   │                             Anchor Macro, Breach Swap, Shield Breaker, Autoclicker
+│   │                             Anchor Macro, Breach Swap, Shield Breaker, Autoclicker, Jump Reset
 │   └── utility/                  Pearl Macro, Elytra Swap
 └── util/                         targeting, rotation, inventory, blocks, timing, server allow-list
 src/main/resources/               fabric.mod.json, mixin config, lang, default config
@@ -177,7 +178,7 @@ src/test/java/                    unit tests (settings, allow-list matching, del
 |---|---|---|
 | `MultiPlayerGameModeMixin` | `attack` HEAD/RETURN | Breach Swap wraps every attack packet |
 | `MouseHandlerMixin` | `turnPlayer` TAIL | Per-frame hook so Aim Assist is as smooth as mouse input |
-| `ClientPacketListenerMixin` | `handleEntityEvent` TAIL, `handleSetTime` HEAD/TAIL | Totem pop detection (entity event 35); server TPS and jitter measurement from the time-sync packet |
+| `ClientPacketListenerMixin` | `handleEntityEvent` TAIL, `handleSetEntityMotion` TAIL, `handleSetTime` HEAD/TAIL | Totem pop detection (entity event 35); knockback on our own player for Jump Reset; server TPS and jitter measurement from the time-sync packet |
 | `MinecraftInvoker` | `startAttack`, `rightClickDelay` | Trigger Bot / Autoclicker click through vanilla's own left-click code; Trigger Bot controls when the shield comes back up |
 | `LivingEntityAccessor` | `attackStrengthTicker` | Exact ticks since the last hit, for Trigger Bot's perfect timing |
 | `MultiPlayerGameModeInvoker` | `ensureHasSentCarriedItem` | Send the held-item packet immediately after a hotbar swap |
