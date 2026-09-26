@@ -26,6 +26,10 @@ enabled). Everywhere else no module ticks, no hooks fire, and the HUD shows **In
 
 Put the jar and Fabric API in `.minecraft/mods/` of a Fabric 1.21.11 profile.
 
+Every `build` also copies the mod jar and the matching Fabric API jar into `Desktop/mods-claude/`
+(older copies there are replaced). Use `-PmodsDir=<folder>` for a different folder or `-PskipModsCopy` to
+skip the copy.
+
 ## First launch
 
 1. Start the game once. `config/altartestclient.json` is created from the bundled default.

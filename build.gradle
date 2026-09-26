@@ -47,3 +47,61 @@ java {
 	sourceCompatibility = JavaVersion.VERSION_21
 	targetCompatibility = JavaVersion.VERSION_21
 }
+
+// ---------------------------------------------------------------------------
+// mods-claude: every build also copies the finished mod jar plus the matching
+// Fabric API jar into <Desktop>/mods-claude, ready to drop into .minecraft/mods.
+// Choose another folder with -PmodsDir=<path>; skip the copy with -PskipModsCopy.
+// ---------------------------------------------------------------------------
+configurations {
+	bundledMods {
+		canBeConsumed = false
+		transitive = false
+	}
+}
+
+dependencies {
+	// Plain (not mod*) configuration: resolves the production Fabric API jar, not the dev-remapped one.
+	bundledMods "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+}
+
+static File desktopDirectory() {
+	def home = System.getProperty("user.home")
+	def candidates = []
+	def oneDrive = System.getenv("OneDrive")
+	if (oneDrive) {
+		// Windows with OneDrive backup moves the Desktop into the OneDrive folder.
+		candidates << new File(oneDrive, "Desktop")
+	}
+	candidates << new File(home, "Desktop")
+	return candidates.find { it.isDirectory() } ?: new File(home, "Desktop")
+}
+
+def modsOutputDir = project.hasProperty("modsDir")
+		? file(project.property("modsDir"))
+		: new File(desktopDirectory(), "mods-claude")
+
+tasks.register("copyToModsFolder", Copy) {
+	group = "build"
+	description = "Copies the built mod and Fabric API into the mods-claude folder (on the Desktop by default)."
+	from(tasks.named("remapJar").flatMap { it.archiveFile })
+	from(configurations.bundledMods)
+	into(modsOutputDir)
+	doFirst {
+		// Remove older builds so Fabric never loads two copies of the same mod.
+		modsOutputDir.listFiles()?.each { File old ->
+			if (old.name ==~ /(altartestclient|fabric-api)-.*\.jar/) {
+				old.delete()
+			}
+		}
+	}
+	doLast {
+		logger.lifecycle("Mod jars copied to ${modsOutputDir}")
+	}
+}
+
+if (!project.hasProperty("skipModsCopy")) {
+	tasks.named("build") {
+		finalizedBy "copyToModsFolder"
+	}
+}
