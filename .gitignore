@@ -41,3 +41,6 @@ replay_*.log
 
 # mods-claude output (built jars)
 mods-claude/
+
+# build-and-install.bat
+mods-folder.txt

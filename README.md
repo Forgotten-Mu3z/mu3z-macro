@@ -12,7 +12,7 @@ enabled). Everywhere else no module ticks, no hooks fire, and the HUD shows **In
 |---|---|
 | Minecraft | 1.21.11 (Java Edition) |
 | Mappings | Mojang official (`loom.officialMojangMappings()`) |
-| Fabric Loader | ≥ 0.19.5 |
+| Fabric Loader | ≥ 0.17.3 at runtime (Fabric API's minimum; the mod itself accepts 0.16.0+) |
 | Fabric API | 0.141.6+1.21.11 |
 | Java | 21 |
 | Build | Gradle 9.5.1 wrapper, Fabric Loom 1.17 (`net.fabricmc.fabric-loom-remap`) |
@@ -20,11 +20,11 @@ enabled). Everywhere else no module ticks, no hooks fire, and the HUD shows **In
 ## Build and run
 
 ```sh
-./gradlew build        # jar -> build/libs/altartestclient-1.0.0.jar (also runs the unit tests)
+./gradlew build        # jar -> build/libs/altartestclient-<version>.jar (also runs the unit tests)
 ./gradlew runClient    # dev client with the mod loaded
 ```
 
-Put the jar and Fabric API in `.minecraft/mods/` of a Fabric 1.21.11 profile.
+Put the jar and Fabric API in `.minecraft/mods/` of a Fabric 1.21.11 profile. Step-by-step Windows / Modrinth instructions: [BUILDING-ON-WINDOWS.md](BUILDING-ON-WINDOWS.md).
 
 Every `build` also copies the mod jar and the matching Fabric API jar into `Desktop/mods-claude/`
 (older copies there are replaced). Use `-PmodsDir=<folder>` for a different folder or `-PskipModsCopy` to
@@ -58,7 +58,7 @@ actions instead: their ON/OFF toggle *arms* the key, and each key press then per
 | Module | What it does | Packets |
 |---|---|---|
 | **Stun Slam** | Target (crosshair or nearest) is blocking with a shield: select axe and hit, **next tick** select mace and hit, swap back. | `SetCarriedItem(axe)`, `Interact(ATTACK)`, `Swing` → next tick → `SetCarriedItem(mace)`, `Interact(ATTACK)`, `Swing`, `SetCarriedItem(orig)` |
-| **Trigger Bot** | Crosshair on a player and attack cooldown ≥ threshold: vanilla left click after a reaction delay (min/max ms ± jitter). | `Interact(ATTACK)`, `Swing` |
+| **Trigger Bot** | Crosshair on a player and the weapon ready: vanilla left click (humanlike adds a reaction delay, min/max ms ± jitter). **Perfect** timing hits on the exact tick the server scores a full-charge hit for the held weapon, adjusted for server TPS and ping jitter. **Unshield to hit**: while you block, it lowers the shield, hits, and raises it again. | `Interact(ATTACK)`, `Swing`; unshield: `PlayerAction(RELEASE_USE_ITEM)`, `Interact(ATTACK)`, `Swing`, `UseItem(offhand)` (same tick when blatant) |
 | **Aim Assist** | Every frame, turns the camera toward the best player in the FOV cone and range (turn speed in °/s, aim point, vertical on/off). | Rotation inside normal movement packets |
 | **Auto Totem** | Offhand isn't a totem (e.g. right after a pop): moves one from the inventory to the offhand after a delay. | `ContainerClick(SWAP, button 40)` |
 | **Auto Crystal** | Breaks crystals near the target, and places crystals on the obsidian/bedrock closest to the target within reach. Separate place/break delays; optional rotation. | `[Rot]`, `UseItemOn(top face)`, `Swing` / `[Rot]`, `Interact(ATTACK crystal)`, `Swing` |
@@ -91,6 +91,20 @@ Every module has a `speed` setting:
 - `PACKET`: turns the camera and sends an extra `MovePlayer.Rot` packet immediately before acting.
 
 These modules deliberately have no self-damage protection.
+
+### Trigger Bot timing
+
+- `PERFECT` (default): the server scores a hit as full once `(ticks since last hit + 0.5) / weapon cooldown ≥ 1`.
+  The weapon cooldown comes from the held item's attack speed (sword 12.5 ticks, axe 20–25, mace 33.3,
+  trident 18.2, fist 5), so Trigger Bot hits on exactly tick 12 / 20 / 33 / 18 / 5. With *Ping compensation*
+  on, the tick count is scaled by the measured server TPS and padded by 1–2 ticks when packet jitter is
+  high. A steady ping needs no correction, because the server's cooldown clock starts and stops with the same
+  one-way delay as the client's.
+- `COOLDOWN`: attacks once the client-side cooldown reaches *Min cooldown* (e.g. 0.9 for faster, weaker
+  hits).
+
+Every `ATTACK` log line records the weapon, its cooldown, the tick count vs. the required count, the charge,
+the server TPS, jitter, ping and the reaction delay.
 
 ## HUD
 
@@ -163,8 +177,9 @@ src/test/java/                    unit tests (settings, allow-list matching, del
 |---|---|---|
 | `MultiPlayerGameModeMixin` | `attack` HEAD/RETURN | Breach Swap wraps every attack packet |
 | `MouseHandlerMixin` | `turnPlayer` TAIL | Per-frame hook so Aim Assist is as smooth as mouse input |
-| `ClientPacketListenerMixin` | `handleEntityEvent` TAIL | Totem pop detection (entity event 35) for Auto Totem and the log |
-| `MinecraftInvoker` | `startAttack` | Trigger Bot / Autoclicker click through vanilla's own left-click code |
+| `ClientPacketListenerMixin` | `handleEntityEvent` TAIL, `handleSetTime` HEAD/TAIL | Totem pop detection (entity event 35); server TPS and jitter measurement from the time-sync packet |
+| `MinecraftInvoker` | `startAttack`, `rightClickDelay` | Trigger Bot / Autoclicker click through vanilla's own left-click code; Trigger Bot controls when the shield comes back up |
+| `LivingEntityAccessor` | `attackStrengthTicker` | Exact ticks since the last hit, for Trigger Bot's perfect timing |
 | `MultiPlayerGameModeInvoker` | `ensureHasSentCarriedItem` | Send the held-item packet immediately after a hotbar swap |
 
 ## Porting to another 1.21.x

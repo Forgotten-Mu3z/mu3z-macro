@@ -24,10 +24,15 @@
     "trigger_bot": {
       "enabled": false,
       "speed": "HUMANLIKE",
+      "timing": "PERFECT",
+      "pingCompensation": true,
+      "cooldown": 1.0,
       "delayMin": 60,
       "delayMax": 140,
       "jitter": 25,
-      "cooldown": 1.0
+      "unshield": true,
+      "shieldDelayMin": 30,
+      "shieldDelayMax": 80
     },
     "aim_assist": {
       "enabled": false,

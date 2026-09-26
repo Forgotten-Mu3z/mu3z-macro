@@ -7,6 +7,7 @@ import net.altarsmp.testclient.log.ActionLogger;
 import net.altarsmp.testclient.module.ModuleManager;
 import net.altarsmp.testclient.util.Chat;
 import net.altarsmp.testclient.util.ClientTicks;
+import net.altarsmp.testclient.util.ServerClock;
 import net.altarsmp.testclient.util.ServerGuard;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
@@ -62,6 +63,7 @@ public final class AltarTestClient implements ClientModInitializer {
 
 	private static void onJoin(Minecraft mc) {
 		String host = ServerGuard.describeServer(mc);
+		ServerClock.reset();
 		ActionLogger.startSession(host);
 		ActionLogger.logEvent("SESSION_START", host, "");
 		announcePending = true;
@@ -69,6 +71,7 @@ public final class AltarTestClient implements ClientModInitializer {
 
 	private static void onDisconnect() {
 		ModuleManager.resetAll();
+		ServerClock.reset();
 		ActionLogger.logEvent("SESSION_END", ServerGuard.currentHost(), "");
 		ActionLogger.endSession();
 		ConfigManager.save();

@@ -1,9 +1,11 @@
 package net.altarsmp.testclient.mixin;
 
 import net.altarsmp.testclient.util.CombatHooks;
+import net.altarsmp.testclient.util.ServerClock;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
+import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.world.entity.Entity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -11,8 +13,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Detects totem pops (entity event 35). Injected at TAIL so it only runs on the client thread, after
- * vanilla has re-dispatched the packet from the network thread.
+ * Detects totem pops (entity event 35) and times the server's time-sync packets for {@link ServerClock}.
+ * Vanilla handlers first run on the network thread and immediately re-queue themselves for the client
+ * thread, so HEAD sees each packet twice (network thread first) and TAIL only on the client thread.
  */
 @Mixin(ClientPacketListener.class)
 public abstract class ClientPacketListenerMixin {
@@ -28,5 +31,17 @@ public abstract class ClientPacketListenerMixin {
 		if (entity != null) {
 			CombatHooks.onTotemPop(entity);
 		}
+	}
+
+	@Inject(method = "handleSetTime", at = @At("HEAD"))
+	private void altar$onSetTimeArrived(ClientboundSetTimePacket packet, CallbackInfo ci) {
+		if (!Minecraft.getInstance().isSameThread()) {
+			ServerClock.onTimeSync(packet.gameTime());
+		}
+	}
+
+	@Inject(method = "handleSetTime", at = @At("TAIL"))
+	private void altar$onSetTimeHandled(ClientboundSetTimePacket packet, CallbackInfo ci) {
+		ServerClock.onTimeSyncHandled(packet.gameTime());
 	}
 }
