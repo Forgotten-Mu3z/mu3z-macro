@@ -132,6 +132,7 @@
       "mode": "BOOST",
       "boostDraw": 5,
       "boostTilt": 1.5,
+      "silentAim": true,
       "drawTicks": 20,
       "drawJitter": 3,
       "delayMin": 40,

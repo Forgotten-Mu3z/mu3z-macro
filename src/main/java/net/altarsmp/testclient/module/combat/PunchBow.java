@@ -15,6 +15,7 @@ import net.altarsmp.testclient.util.Deadline;
 import net.altarsmp.testclient.util.InventoryUtil;
 import net.altarsmp.testclient.util.ItemUtil;
 import net.altarsmp.testclient.util.KeyUtil;
+import net.altarsmp.testclient.util.RotationSpoof;
 import net.altarsmp.testclient.util.RotationUtil;
 import net.altarsmp.testclient.util.ServerGuard;
 import net.minecraft.client.player.LocalPlayer;
@@ -75,6 +76,8 @@ public final class PunchBow extends Module {
 	private final DoubleSetting boostTilt = add(new DoubleSetting("boostTilt", "Boost tilt",
 			"Self boost, standing still: degrees from straight up toward where you face (sets the launch direction). While walking forward the tilt is computed from your speed",
 			1.5, 0.0, 4.0, 0.5, "°"));
+	private final BooleanSetting silentAim = add(new BooleanSetting("silentAim", "Silent aim",
+			"Self boost: only the server sees you aim up; your camera never moves", true));
 	private final IntSetting drawTicks = add(new IntSetting("drawTicks", "Draw time",
 			"Shoot mode: ticks to draw. 20 = full power and a critical arrow, 3 = fastest shot that still fires",
 			20, 3, 40, "t"));
@@ -94,6 +97,7 @@ public final class PunchBow extends Module {
 	private int targetDrawTicks;
 	private boolean holdingUse;
 	private boolean aimedUp;
+	private boolean spoofing;
 	private float savedPitch;
 
 	public PunchBow() {
@@ -164,7 +168,10 @@ public final class PunchBow extends Module {
 			}
 			// Re-assert every tick: opening a menu or losing focus releases all keys, and the mouse may move.
 			holdUse();
-			if (aimedUp) {
+			if (spoofing) {
+				// Recomputed every tick: the forward tilt follows your current walking speed.
+				RotationSpoof.setPitch(boostPitch(player));
+			} else if (aimedUp) {
 				aimUp(player);
 			}
 			if (player.getTicksUsingItem() >= targetDrawTicks) {
@@ -179,7 +186,11 @@ public final class PunchBow extends Module {
 
 	private void startDraw() {
 		LocalPlayer player = mc().player;
-		if (mode.get() == Mode.BOOST) {
+		if (mode.get() == Mode.BOOST && silentAim.get()) {
+			// From the next movement packet on, the server sees you looking up; the camera stays put.
+			spoofing = true;
+			RotationSpoof.setPitch(boostPitch(player));
+		} else if (mode.get() == Mode.BOOST) {
 			// Look up before the use packet, so the server has the upward rotation for the whole draw.
 			savedPitch = player.getXRot();
 			aimedUp = true;
@@ -207,10 +218,10 @@ public final class PunchBow extends Module {
 		LocalPlayer player = mc().player;
 		// No extra rotation packet here: a rotation-only packet makes the server reset your known movement to
 		// zero, and the arrow inherits that movement. The upward look was already sent with this tick's normal
-		// movement packet, because onFrame/onTick keep the camera locked while drawing.
+		// movement packet (silent aim swaps it into that packet; camera mode keeps the camera locked).
 		int ticks = player.getTicksUsingItem();
 		float power = BowItem.getPowerForTime(ticks);
-		float pitch = player.getXRot();
+		float pitch = spoofing ? RotationSpoof.pitch() : player.getXRot();
 		mc().gameMode.releaseUsingItem(player);
 		releaseUse();
 		restoreCamera();
@@ -266,7 +277,12 @@ public final class PunchBow extends Module {
 		return (float) (-90.0 + Math.min(tilt, 30.0));
 	}
 
+	/** Ends silent aim (the next movement packet carries your real pitch again) or puts the camera back. */
 	private void restoreCamera() {
+		if (spoofing) {
+			RotationSpoof.clear();
+			spoofing = false;
+		}
 		if (aimedUp) {
 			LocalPlayer player = mc().player;
 			if (player != null) {

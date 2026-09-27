@@ -5,6 +5,7 @@
 	"client": [
 		"ClientPacketListenerMixin",
 		"LivingEntityAccessor",
+		"LocalPlayerMixin",
 		"MinecraftInvoker",
 		"MouseHandlerMixin",
 		"MultiPlayerGameModeInvoker",
