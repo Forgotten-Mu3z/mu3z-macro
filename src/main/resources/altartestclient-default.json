@@ -129,6 +129,9 @@
     "punch_bow": {
       "enabled": false,
       "speed": "BLATANT",
+      "mode": "BOOST",
+      "boostDraw": 4,
+      "boostTilt": 3.0,
       "drawTicks": 20,
       "drawJitter": 3,
       "delayMin": 40,
