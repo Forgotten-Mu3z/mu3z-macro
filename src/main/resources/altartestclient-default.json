@@ -1,5 +1,5 @@
 {
-  "configVersion": 1,
+  "configVersion": 2,
   "global": {
     "allowedServers": [
       "localhost",
@@ -130,8 +130,8 @@
       "enabled": false,
       "speed": "BLATANT",
       "mode": "BOOST",
-      "boostDraw": 4,
-      "boostTilt": 3.0,
+      "boostDraw": 5,
+      "boostTilt": 1.5,
       "drawTicks": 20,
       "drawJitter": 3,
       "delayMin": 40,

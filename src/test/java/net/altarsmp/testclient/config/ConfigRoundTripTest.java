@@ -67,6 +67,22 @@ class ConfigRoundTripTest {
 	}
 
 	@Test
+	void versionOneConfigGetsNewPunchBowBoostDefaults() {
+		JsonObject old = ConfigManager.serialize();
+		old.addProperty("configVersion", 1);
+		JsonObject punchBow = old.getAsJsonObject("modules").getAsJsonObject("punch_bow");
+		punchBow.addProperty("boostDraw", 4);
+		punchBow.addProperty("boostTilt", 3.0);
+		punchBow.addProperty("drawTicks", 12);
+
+		assertTrue(ConfigManager.apply(old));
+		JsonObject migrated = ConfigManager.serialize().getAsJsonObject("modules").getAsJsonObject("punch_bow");
+		assertEquals(5, migrated.get("boostDraw").getAsInt());
+		assertEquals(1.5, migrated.get("boostTilt").getAsDouble(), 1e-9);
+		assertEquals(12, migrated.get("drawTicks").getAsInt()); // untouched
+	}
+
+	@Test
 	void editedValuesSurviveRoundTrip() {
 		JsonObject edited = ConfigManager.serialize();
 		JsonObject trigger = edited.getAsJsonObject("modules").getAsJsonObject("trigger_bot");

@@ -32,10 +32,12 @@ import net.minecraft.world.item.Items;
  * you and its Punch knockback launches you. Why it works this way (1.21.11 arrow code): an arrow cannot hit its
  * own shooter until it has fully left the shooter's hitbox (plus a 1-block margin), so it has to go up and come
  * back; Punch then pushes the victim in the arrow's horizontal direction of travel (plus a small lift), so a
- * slight tilt toward where you face decides which way you fly. Standing still, a 4-tick draw clears your hitbox,
- * peaks about 3.5 blocks up and lands on you after 17 ticks; tilts up to about 3-4 degrees still land on you.
- * The server aims the arrow with your rotation at the moment of release, so the macro looks up during the draw
- * and sends that rotation right before releasing, then puts your camera back.
+ * slight tilt toward where you face decides which way you fly. Standing still, a 4-tick draw is the minimum that
+ * clears your hitbox (17-tick flight); the default 5 (22 ticks) still works if the server counts one tick more or
+ * less. The server aims the arrow with the rotation from your last movement packet and adds your last known
+ * movement to it, so the macro keeps the camera locked upward every frame during the draw (never sending a
+ * rotation-only packet, which would zero that movement) and, while you walk forward, tilts the shot just enough
+ * to make up for the arrow falling behind you. It puts your camera back after the shot.
  *
  * <p>Shoot mode: fires where you are aiming (e.g. to knock another player back), drawn for "Draw time" ticks.
  *
@@ -68,11 +70,11 @@ public final class PunchBow extends Module {
 	private final EnumSetting<Mode> mode = add(new EnumSetting<>("mode", "Mode",
 			"Self boost: shoot yourself to get launched. Shoot: fire where you are aiming", Mode.BOOST));
 	private final IntSetting boostDraw = add(new IntSetting("boostDraw", "Boost draw",
-			"Self boost: draw ticks. 4 clears your hitbox and lands back on you after ~0.85 s; more = higher and slower",
-			4, 4, 8, "t"));
+			"Self boost: draw ticks. 5 lands back on you after ~1.1 s and still works if the server counts a tick more or less; more = higher and slower",
+			5, 4, 8, "t"));
 	private final DoubleSetting boostTilt = add(new DoubleSetting("boostTilt", "Boost tilt",
-			"Self boost: degrees from straight up toward where you face. Sets the launch direction; above ~4 the arrow misses you",
-			3.0, 0.0, 6.0, 0.5, "°"));
+			"Self boost, standing still: degrees from straight up toward where you face (sets the launch direction). While walking forward the tilt is computed from your speed",
+			1.5, 0.0, 4.0, 0.5, "°"));
 	private final IntSetting drawTicks = add(new IntSetting("drawTicks", "Draw time",
 			"Shoot mode: ticks to draw. 20 = full power and a critical arrow, 3 = fastest shot that still fires",
 			20, 3, 40, "t"));
@@ -203,11 +205,9 @@ public final class PunchBow extends Module {
 
 	private void shoot() {
 		LocalPlayer player = mc().player;
-		if (aimedUp) {
-			// The server aims the arrow with the rotation it has when the release arrives: send it explicitly.
-			aimUp(player);
-			RotationUtil.sendRotationPacket(player);
-		}
+		// No extra rotation packet here: a rotation-only packet makes the server reset your known movement to
+		// zero, and the arrow inherits that movement. The upward look was already sent with this tick's normal
+		// movement packet, because onFrame/onTick keep the camera locked while drawing.
 		int ticks = player.getTicksUsingItem();
 		float power = BowItem.getPowerForTime(ticks);
 		float pitch = player.getXRot();
@@ -231,10 +231,39 @@ public final class PunchBow extends Module {
 		}
 	}
 
-	/** Pitch straight up, tilted toward the facing direction by "Boost tilt"; yaw stays yours. */
+	/** Keeps the upward look locked every frame while drawing, so each movement packet carries it. */
+	@Override
+	public void onFrame(double frameSeconds) {
+		if (aimedUp && stage == Stage.DRAWING && mc().player != null) {
+			aimUp(mc().player);
+		}
+	}
+
+	/** Pitch almost straight up, tilted toward where you face; yaw stays yours so your walking is not affected. */
 	private void aimUp(LocalPlayer player) {
-		float target = -90.0F + boostTilt.get().floatValue();
-		RotationUtil.turnBy(player, 0.0, target - player.getXRot());
+		RotationUtil.turnBy(player, 0.0, boostPitch(player) - player.getXRot());
+	}
+
+	/**
+	 * The arrow inherits your walking speed but loses 1% of it per tick while you keep walking, so it lands
+	 * behind you by speed * (flight - sum of 0.99^t). When you walk forward the shot is tilted forward just enough
+	 * for the arrow's own forward speed to make up that lag; standing still it uses "Boost tilt" (which also
+	 * sets the launch direction).
+	 */
+	private float boostPitch(LocalPlayer player) {
+		double tilt = boostTilt.get();
+		double yaw = Math.toRadians(player.getYRot());
+		double forwardSpeed = (player.getX() - player.xo) * -Math.sin(yaw) + (player.getZ() - player.zo) * Math.cos(yaw);
+		if (forwardSpeed > 0.03) {
+			int draw = boostDraw.get();
+			int flight = boostFlightTicks();
+			double carried = (1.0 - Math.pow(0.99, flight)) / 0.01;
+			double lag = forwardSpeed * (flight - carried);
+			double launchSpeed = 3.0 * BowItem.getPowerForTime(draw);
+			double compensation = Math.toDegrees(Math.asin(Math.min(1.0, lag / carried / launchSpeed)));
+			tilt = Math.max(tilt, compensation);
+		}
+		return (float) (-90.0 + Math.min(tilt, 30.0));
 	}
 
 	private void restoreCamera() {

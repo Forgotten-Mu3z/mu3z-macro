@@ -54,7 +54,8 @@ def main():
         obj.update(settings_of(text))
         modules[module_id] = obj
 
-    config = {"configVersion": 1, "global": global_obj, "modules": modules}
+    version = int(re.search(r"CONFIG_VERSION = (\d+);", (SRC / "config/ConfigManager.java").read_text()).group(1))
+    config = {"configVersion": version, "global": global_obj, "modules": modules}
     rendered = json.dumps(config, indent=2) + "\n"
     if "--check" in sys.argv:
         if not OUT.exists() or OUT.read_text() != rendered:

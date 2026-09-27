@@ -32,7 +32,7 @@ public final class ConfigManager {
 	private static final String FILE_NAME = "altartestclient.json";
 	private static final String BUNDLED_DEFAULT = "/altartestclient-default.json";
 	private static final long SAVE_DEBOUNCE_MS = 1000;
-	private static final int CONFIG_VERSION = 1;
+	static final int CONFIG_VERSION = 2;
 
 	private static final GlobalConfig GLOBAL = new GlobalConfig();
 	private static boolean dirty;
@@ -51,13 +51,14 @@ public final class ConfigManager {
 
 	public static void load() {
 		Path path = path();
+		boolean migrated = false;
 		try {
 			if (Files.notExists(path)) {
 				copyBundledDefault(path);
 			}
 			if (Files.exists(path)) {
 				try (Reader reader = Files.newBufferedReader(path, StandardCharsets.UTF_8)) {
-					apply(JsonParser.parseReader(reader));
+					migrated = apply(JsonParser.parseReader(reader));
 				}
 			}
 			AltarTestClient.LOGGER.info("Loaded config from {}", path);
@@ -65,6 +66,10 @@ public final class ConfigManager {
 			AltarTestClient.LOGGER.error("Could not read {}, using defaults", path, e);
 		}
 		dirty = false;
+		if (migrated) {
+			AltarTestClient.LOGGER.info("Migrated {} to config version {}", path, CONFIG_VERSION);
+			save();
+		}
 	}
 
 	private static void copyBundledDefault(Path path) throws IOException {
@@ -78,11 +83,14 @@ public final class ConfigManager {
 		}
 	}
 
-	static void apply(JsonElement root) {
+	/** @return true if an older config version was migrated (so it should be saved again). */
+	static boolean apply(JsonElement root) {
 		if (root == null || !root.isJsonObject()) {
-			return;
+			return false;
 		}
 		JsonObject json = root.getAsJsonObject();
+		int version = json.has("configVersion") && json.get("configVersion").isJsonPrimitive()
+				&& json.getAsJsonPrimitive("configVersion").isNumber() ? json.get("configVersion").getAsInt() : 0;
 		if (json.has("global") && json.get("global").isJsonObject()) {
 			JsonObject global = json.getAsJsonObject("global");
 			readSettings(global, GLOBAL.settings());
@@ -106,6 +114,26 @@ public final class ConfigManager {
 				readSettings(obj, module.settings());
 				if (obj.has("enabled") && obj.get("enabled").isJsonPrimitive()) {
 					module.setEnabled(obj.get("enabled").getAsBoolean(), false);
+				}
+			}
+		}
+		if (version < 2) {
+			// 1.4.1: Punch Bow's old boost defaults (4-tick draw, 3 degree tilt) missed while walking or when the
+			// server counted one tick less; move saved configs to the new defaults once.
+			resetSetting("punch_bow", "boostDraw");
+			resetSetting("punch_bow", "boostTilt");
+			return true;
+		}
+		return false;
+	}
+
+	private static void resetSetting(String moduleId, String key) {
+		for (Module module : ModuleManager.all()) {
+			if (module.id().equals(moduleId)) {
+				for (Setting<?> setting : module.settings()) {
+					if (setting.key().equals(key)) {
+						setting.reset();
+					}
 				}
 			}
 		}
