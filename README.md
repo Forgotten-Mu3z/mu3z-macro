@@ -68,6 +68,7 @@ actions instead: their ON/OFF toggle *arms* the key, and each key press then per
 | **Pearl Macro** | One key: select pearl, throw, swap back. Uses the offhand directly if it holds pearls. | `SetCarriedItem(pearl)`, `UseItem`, `Swing`, `SetCarriedItem(orig)` |
 | **Elytra Swap** | One key: chestplate ↔ elytra. A hotbar item takes 1 click; a main-inventory item takes 3 clicks. | `ContainerClick(SWAP 6↔hotbar)` or `ContainerClick(PICKUP)` ×3 |
 | **Autoclicker** | Vanilla left clicks at the configured CPS while attack is held (or always). Pauses on blocks so mining still works. | `Interact(ATTACK)` / `Swing` per click |
+| **Punch Bow** | One key (**Blatant by default**): select the best bow in the hotbar (most Punch, then Power), draw for *Draw time* ticks (20 = full power + crit, 3 = fastest shot that fires), release where you're aiming, swap back. The macro holds the use key while drawing. Blatant: swap + draw start in the key-press tick, release on exactly the draw-time tick, swap back that same tick. Humanlike: random gaps and 0–3 extra draw ticks. | `SetCarriedItem(bow)`, `UseItem`, … N ticks …, `PlayerAction(RELEASE_USE_ITEM)`, `SetCarriedItem(orig)` |
 | **Jump Reset** | When you're hit on the ground, presses jump so you jump on the very tick the knockback lands, cancelling part of it. Blatant: every hit, never late. Humanlike: *Success chance* % of hits, sometimes up to *Max late ticks* late. Skips when airborne, in liquid, riding, gliding or in a menu. | Normal movement packets with a jump on the knockback tick |
 
 Each module file begins with a short comment describing how it works
@@ -75,7 +76,8 @@ Each module file begins with a short comment describing how it works
 
 ### Speed modes
 
-Every module has a `speed` setting:
+Every module has a `speed` setting (Humanlike by default, except Punch Bow, which defaults to Blatant).
+**Global settings → All modules: Blatant / Humanlike** switches every module at once:
 
 - **HUMANLIKE**: each step waits a delay drawn from a normal distribution centred between the module's
   min and max settings (sd = range / 4, clamped). Aim Assist caps the turn rate, eases out near the
@@ -165,7 +167,8 @@ src/main/java/net/altarsmp/testclient/
 ├── module/                       Module base, ModuleManager, ActionLock, SpeedMode, RotateMode
 │   ├── setting/                  Boolean/Int/Double/Enum settings
 │   ├── combat/                   Stun Slam, Trigger Bot, Aim Assist, Auto Totem, Auto Crystal,
-│   │                             Anchor Macro, Breach Swap, Shield Breaker, Autoclicker, Jump Reset
+│   │                             Anchor Macro, Breach Swap, Shield Breaker, Autoclicker, Jump Reset,
+│   │                             Punch Bow
 │   └── utility/                  Pearl Macro, Elytra Swap
 └── util/                         targeting, rotation, inventory, blocks, timing, server allow-list
 src/main/resources/               fabric.mod.json, mixin config, lang, default config

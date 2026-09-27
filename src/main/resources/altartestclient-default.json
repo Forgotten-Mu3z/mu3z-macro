@@ -125,6 +125,15 @@
       "speed": "HUMANLIKE",
       "chance": 80,
       "maxLateTicks": 1
+    },
+    "punch_bow": {
+      "enabled": false,
+      "speed": "BLATANT",
+      "drawTicks": 20,
+      "drawJitter": 3,
+      "delayMin": 40,
+      "delayMax": 100,
+      "swapBack": true
     }
   }
 }

@@ -13,5 +13,6 @@
 	"key.altartestclient.pearl_macro": "Pearl Macro (throw)",
 	"key.altartestclient.elytra_swap": "Elytra Swap (swap)",
 	"key.altartestclient.autoclicker": "Toggle Autoclicker",
-	"key.altartestclient.jump_reset": "Toggle Jump Reset"
+	"key.altartestclient.jump_reset": "Toggle Jump Reset",
+	"key.altartestclient.punch_bow": "Punch Bow (shoot)"
 }

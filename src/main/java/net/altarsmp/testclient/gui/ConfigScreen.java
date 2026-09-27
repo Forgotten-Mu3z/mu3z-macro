@@ -12,6 +12,7 @@ import net.altarsmp.testclient.input.Keybinds;
 import net.altarsmp.testclient.log.ActionLogger;
 import net.altarsmp.testclient.module.Module;
 import net.altarsmp.testclient.module.ModuleManager;
+import net.altarsmp.testclient.module.SpeedMode;
 import net.altarsmp.testclient.module.setting.Setting;
 import net.altarsmp.testclient.util.ServerGuard;
 import net.minecraft.ChatFormatting;
@@ -137,6 +138,14 @@ public final class ConfigScreen extends Screen {
 		for (Setting<?> setting : global.settings()) {
 			widgets.add(SettingWidgets.create(setting));
 		}
+		widgets.add(Button.builder(Component.literal("All modules: ").append(Component.literal("Blatant").withStyle(ChatFormatting.GOLD)), b -> {
+			ModuleManager.setAllSpeeds(SpeedMode.BLATANT);
+			rebuildWidgets();
+		}).tooltip(Tooltip.create(Component.literal("Set every module's Speed to Blatant (no added delays)"))).build());
+		widgets.add(Button.builder(Component.literal("All modules: ").append(Component.literal("Humanlike").withStyle(ChatFormatting.GREEN)), b -> {
+			ModuleManager.setAllSpeeds(SpeedMode.HUMANLIKE);
+			rebuildWidgets();
+		}).tooltip(Tooltip.create(Component.literal("Set every module's Speed to Humanlike (randomised delays)"))).build());
 		widgets.add(Button.builder(Component.literal("Reload config file"), b -> {
 			ConfigManager.load();
 			rebuildWidgets();

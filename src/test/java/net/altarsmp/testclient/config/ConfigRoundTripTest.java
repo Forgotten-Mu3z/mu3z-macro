@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 import net.altarsmp.testclient.module.Module;
 import net.altarsmp.testclient.module.ModuleManager;
+import net.altarsmp.testclient.module.SpeedMode;
 import net.altarsmp.testclient.module.setting.Setting;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,7 +50,20 @@ class ConfigRoundTripTest {
 				assertTrue(keys.add(setting.key()), "duplicate key " + setting.key() + " in " + module.id());
 			}
 		}
-		assertEquals(12, ModuleManager.all().size());
+		assertEquals(13, ModuleManager.all().size());
+	}
+
+	@Test
+	void allSpeedsButtonSwitchesEveryModule() {
+		ConfigManager.global().logging.set(false);
+		ModuleManager.setAllSpeeds(SpeedMode.BLATANT);
+		for (Module module : ModuleManager.all()) {
+			assertEquals(SpeedMode.BLATANT, module.speedMode(), module.id());
+		}
+		ModuleManager.setAllSpeeds(SpeedMode.HUMANLIKE);
+		for (Module module : ModuleManager.all()) {
+			assertEquals(SpeedMode.HUMANLIKE, module.speedMode(), module.id());
+		}
 	}
 
 	@Test

@@ -1,13 +1,12 @@
 package net.altarsmp.testclient.module.combat;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import java.util.Locale;
 import java.util.concurrent.ThreadLocalRandom;
 import net.altarsmp.testclient.module.Module;
 import net.altarsmp.testclient.module.setting.IntSetting;
 import net.altarsmp.testclient.util.ClientTicks;
+import net.altarsmp.testclient.util.KeyUtil;
 import net.altarsmp.testclient.util.ServerGuard;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.phys.Vec3;
@@ -128,16 +127,10 @@ public final class JumpReset extends Module {
 	}
 
 	private void release() {
-		if (!physicallyHeld()) {
+		if (!KeyUtil.isPhysicallyDown(mc().options.keyJump)) {
 			mc().options.keyJump.setDown(false);
 		}
 		pressedAtTick = -1;
-	}
-
-	/** Whether the player is holding the jump key themselves (keyboard keys only). */
-	private boolean physicallyHeld() {
-		InputConstants.Key key = KeyBindingHelper.getBoundKeyOf(mc().options.keyJump);
-		return key.getType() == InputConstants.Type.KEYSYM && InputConstants.isKeyDown(mc().getWindow(), key.getValue());
 	}
 
 	@Override

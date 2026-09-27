@@ -12,6 +12,7 @@ import net.altarsmp.testclient.module.combat.AutoTotem;
 import net.altarsmp.testclient.module.combat.Autoclicker;
 import net.altarsmp.testclient.module.combat.BreachSwap;
 import net.altarsmp.testclient.module.combat.JumpReset;
+import net.altarsmp.testclient.module.combat.PunchBow;
 import net.altarsmp.testclient.module.combat.ShieldBreaker;
 import net.altarsmp.testclient.module.combat.StunSlam;
 import net.altarsmp.testclient.module.combat.TriggerBot;
@@ -45,6 +46,15 @@ public final class ModuleManager {
 		register(new ElytraSwap());
 		register(new Autoclicker());
 		jumpReset = register(new JumpReset());
+		register(new PunchBow());
+	}
+
+	/** Puts every module in the same speed mode (the "All Blatant" / "All Humanlike" buttons). */
+	public static void setAllSpeeds(SpeedMode mode) {
+		for (Module module : MODULES) {
+			module.setSpeedMode(mode);
+		}
+		ActionLogger.logEvent("ALL_SPEED", "", mode.name());
 	}
 
 	private static <M extends Module> M register(M module) {

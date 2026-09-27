@@ -47,8 +47,10 @@ def main():
     modules = {}
     for cls in order:
         text = module_files[cls].read_text()
-        module_id = re.search(r'super\("([^"]+)"', text).group(1)
-        obj = {"enabled": False, "speed": "HUMANLIKE"}
+        call = re.search(r'super\(("[^"]+"[^;]*)\);', text, re.S).group(1)
+        module_id = re.match(r'"([^"]+)"', call).group(1)
+        speed = "BLATANT" if "SpeedMode.BLATANT" in call else "HUMANLIKE"
+        obj = {"enabled": False, "speed": speed}
         obj.update(settings_of(text))
         modules[module_id] = obj
 

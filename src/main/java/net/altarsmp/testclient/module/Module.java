@@ -36,12 +36,16 @@ public abstract class Module {
 	private @Nullable KeyMapping keyMapping;
 
 	protected Module(String id, String name, String description, Kind kind) {
+		this(id, name, description, kind, SpeedMode.HUMANLIKE);
+	}
+
+	protected Module(String id, String name, String description, Kind kind, SpeedMode defaultSpeed) {
 		this.id = id;
 		this.name = name;
 		this.description = description;
 		this.kind = kind;
 		this.speed = add(new EnumSetting<>("speed", "Speed",
-				"Humanlike = randomised delays, Blatant = instant", SpeedMode.HUMANLIKE));
+				"Humanlike = randomised delays, Blatant = instant", defaultSpeed));
 	}
 
 	protected final <S extends Setting<?>> S add(S setting) {
@@ -71,6 +75,11 @@ public abstract class Module {
 
 	public final SpeedMode speedMode() {
 		return speed.get();
+	}
+
+	public final void setSpeedMode(SpeedMode mode) {
+		speed.set(mode);
+		ConfigManager.markDirty();
 	}
 
 	public final boolean isEnabled() {

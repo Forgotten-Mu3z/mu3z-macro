@@ -64,4 +64,12 @@ public final class ItemUtil {
 	public static int densityLevel(ItemStack stack) {
 		return enchantmentLevel(stack, Enchantments.DENSITY);
 	}
+
+	public static int punchLevel(ItemStack stack) {
+		return enchantmentLevel(stack, Enchantments.PUNCH);
+	}
+
+	public static int powerLevel(ItemStack stack) {
+		return enchantmentLevel(stack, Enchantments.POWER);
+	}
 }
