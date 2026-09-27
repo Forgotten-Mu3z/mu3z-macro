@@ -19,7 +19,11 @@ import net.altarsmp.testclient.util.RotationSpoof;
 import net.altarsmp.testclient.util.RotationUtil;
 import net.altarsmp.testclient.util.ServerGuard;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.core.BlockPos;
+import net.minecraft.util.Mth;
 import net.minecraft.world.InteractionHand;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
@@ -235,9 +239,9 @@ public final class PunchBow extends Module {
 		((MinecraftInvoker) mc()).altar$setRightClickDelay(VANILLA_USE_DELAY);
 		if (mode.get() == Mode.BOOST && lastAim != null) {
 			log("BOOST_SHOT", "", String.format(Locale.ROOT,
-					"%s speed %.3f b/t, draw %dt power %.2f, aim yaw %.1f (facing %.1f) pitch %.1f tilt %.2f, lands in ~%dt",
-					state, lastAim.speed(), ticks, power, yaw, player.getYRot(), pitch, lastAim.tiltDegrees(),
-					lastAim.flightTicks()));
+					"%s, speed at shot %.3f -> predicted %.3f b/t, draw %dt power %.2f, aim yaw %.1f (facing %.1f) pitch %.1f tilt %.2f, lands in ~%dt",
+					state, lastAim.releaseSpeed(), lastAim.targetSpeed(), ticks, power, yaw, player.getYRot(), pitch,
+					lastAim.tiltDegrees(), lastAim.flightTicks()));
 		} else {
 			log("SHOOT", "", String.format(Locale.ROOT, "draw %dt power %.2f%s yaw %.1f pitch %.1f",
 					ticks, power, power >= 1.0F ? " crit" : "", yaw, pitch));
@@ -269,34 +273,59 @@ public final class PunchBow extends Module {
 	}
 
 	/**
-	 * Aim from your real movement over the last tick (exactly what the server passes on to the arrow). Silent aim
-	 * can point the shot along any movement direction; camera mode can only tilt toward where you face, so it
-	 * uses the forward part of your movement.
+	 * Aim from your predicted movement: the bow slows you to 20% while drawing, so your speed at the shot is not
+	 * the speed you will have while the arrow is up. The prediction starts from your real movement over the last
+	 * tick, applies one more slowed tick (the release tick), then accelerates you with the keys you hold at your
+	 * full speed (walk/sprint/sneak, speed effects, the block you stand on). Silent aim can point the shot along
+	 * any direction; camera mode can only tilt toward where you face.
 	 */
 	private BoostMath.Aim computeAim(LocalPlayer player, boolean anyDirection) {
-		double vx = player.getX() - player.xo;
-		double vz = player.getZ() - player.zo;
-		if (!anyDirection) {
-			double yaw = Math.toRadians(player.getYRot());
-			double fx = -Math.sin(yaw);
-			double fz = Math.cos(yaw);
-			double forward = Math.max(0.0, vx * fx + vz * fz);
-			vx = forward * fx;
-			vz = forward * fz;
+		Vec2 keys = player.input.getMoveVector();
+		double sneak = player.isShiftKeyDown() ? player.getAttributeValue(Attributes.SNEAKING_SPEED) : 1.0;
+		double[] full = BoostMath.keysToWorld(keys.x, keys.y, player.getYRot(), sneak);
+		double[] drawn = BoostMath.keysToWorld(keys.x, keys.y, player.getYRot(), sneak * BoostMath.DRAW_SLOWDOWN);
+		double speed = player.getAttributeValue(Attributes.MOVEMENT_SPEED);
+		if (willStartSprinting(player, keys)) {
+			// Sprint starts only after the shot; while the bow is drawn you still walk.
+			speed *= 1.3;
+			drawn[0] /= 1.3;
+			drawn[1] /= 1.3;
 		}
-		return BoostMath.aim(vx, vz, player.getYRot(), boostDraw.get(), boostTilt.get());
+		double friction = player.onGround() ? groundFriction(player) : 0.6;
+		BoostMath.Motion motion = new BoostMath.Motion(player.getX() - player.xo, player.getZ() - player.zo,
+				full[0], full[1], drawn[0], drawn[1], BoostMath.groundAccel(speed, friction), friction * 0.91);
+		BoostMath.Aim aim = BoostMath.aim(motion, player.getYRot(), boostDraw.get(), boostTilt.get());
+		if (anyDirection) {
+			return aim;
+		}
+		// Camera mode keeps your real yaw, so only the part of the tilt toward where you face can be used.
+		double off = Math.toRadians(Mth.wrapDegrees(aim.yaw() - player.getYRot()));
+		double tilt = Math.max(0.0, aim.tiltDegrees() * Math.cos(off));
+		return new BoostMath.Aim(player.getYRot(), (float) (-90.0 + tilt), aim.targetSpeed(), aim.releaseSpeed(), aim.flightTicks(), tilt);
 	}
 
-	private static String movementState(LocalPlayer player) {
+	/** Sprint cannot start while the bow is drawn, but it starts again right after if the sprint key is held. */
+	private boolean willStartSprinting(LocalPlayer player, Vec2 keys) {
+		return !player.isSprinting() && keys.y > 0 && mc().options.keySprint.isDown();
+	}
+
+	/** Friction of the block you stand on (0.6 normal, 0.98 ice, 0.8 slime). */
+	private float groundFriction(LocalPlayer player) {
+		BlockPos below = BlockPos.containing(player.getX(), player.getY() - 0.5000001, player.getZ());
+		return mc().level.getBlockState(below).getBlock().getFriction();
+	}
+
+	private String movementState(LocalPlayer player) {
+		Vec2 keys = player.input.getMoveVector();
 		double vx = player.getX() - player.xo;
 		double vz = player.getZ() - player.zo;
-		if (Math.sqrt(vx * vx + vz * vz) < BoostMath.STANDING_SPEED) {
+		if (keys.lengthSquared() == 0.0F && Math.sqrt(vx * vx + vz * vz) < BoostMath.STANDING_SPEED) {
 			return "standing";
 		}
 		if (player.isShiftKeyDown()) {
 			return "sneaking";
 		}
-		return player.isSprinting() ? "sprinting" : "walking";
+		return player.isSprinting() || willStartSprinting(player, keys) ? "sprinting" : "walking";
 	}
 
 	/** Ends silent aim (the next movement packet carries your real pitch again) or puts the camera back. */
