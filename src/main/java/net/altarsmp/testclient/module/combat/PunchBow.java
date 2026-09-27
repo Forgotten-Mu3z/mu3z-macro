@@ -24,6 +24,7 @@ import net.minecraft.world.InteractionResult;
 import net.minecraft.world.item.BowItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Punch Bow (action): one key press selects the best bow in the hotbar (highest Punch, then Power), draws,
@@ -99,6 +100,7 @@ public final class PunchBow extends Module {
 	private boolean aimedUp;
 	private boolean spoofing;
 	private float savedPitch;
+	private BoostMath.@Nullable Aim lastAim;
 
 	public PunchBow() {
 		super("punch_bow", "Punch Bow", "Key press: Punch bow self-boost (or shot), then swap back", Kind.ACTION, SpeedMode.BLATANT);
@@ -169,8 +171,9 @@ public final class PunchBow extends Module {
 			// Re-assert every tick: opening a menu or losing focus releases all keys, and the mouse may move.
 			holdUse();
 			if (spoofing) {
-				// Recomputed every tick: the forward tilt follows your current walking speed.
-				RotationSpoof.setPitch(boostPitch(player));
+				// Recomputed every tick: direction and tilt follow your current movement.
+				lastAim = computeAim(player, true);
+				RotationSpoof.set(lastAim.yaw(), lastAim.pitch());
 			} else if (aimedUp) {
 				aimUp(player);
 			}
@@ -187,9 +190,10 @@ public final class PunchBow extends Module {
 	private void startDraw() {
 		LocalPlayer player = mc().player;
 		if (mode.get() == Mode.BOOST && silentAim.get()) {
-			// From the next movement packet on, the server sees you looking up; the camera stays put.
+			// From the next movement packet on, the server sees you aiming up; the camera stays put.
 			spoofing = true;
-			RotationSpoof.setPitch(boostPitch(player));
+			lastAim = computeAim(player, true);
+			RotationSpoof.set(lastAim.yaw(), lastAim.pitch());
 		} else if (mode.get() == Mode.BOOST) {
 			// Look up before the use packet, so the server has the upward rotation for the whole draw.
 			savedPitch = player.getXRot();
@@ -222,14 +226,22 @@ public final class PunchBow extends Module {
 		int ticks = player.getTicksUsingItem();
 		float power = BowItem.getPowerForTime(ticks);
 		float pitch = spoofing ? RotationSpoof.pitch() : player.getXRot();
+		float yaw = spoofing && !Float.isNaN(RotationSpoof.yaw()) ? RotationSpoof.yaw() : player.getYRot();
+		String state = movementState(player);
 		mc().gameMode.releaseUsingItem(player);
 		releaseUse();
 		restoreCamera();
 		// Same delay vanilla applies after a use, so a physically held right mouse button doesn't redraw instantly.
 		((MinecraftInvoker) mc()).altar$setRightClickDelay(VANILLA_USE_DELAY);
-		log(mode.get() == Mode.BOOST ? "BOOST_SHOT" : "SHOOT", "", String.format(Locale.ROOT,
-				"draw %dt power %.2f%s yaw %.1f pitch %.1f%s", ticks, power, power >= 1.0F ? " crit" : "",
-				player.getYRot(), pitch, mode.get() == Mode.BOOST ? ", arrow lands back in ~" + boostFlightTicks() + "t" : ""));
+		if (mode.get() == Mode.BOOST && lastAim != null) {
+			log("BOOST_SHOT", "", String.format(Locale.ROOT,
+					"%s speed %.3f b/t, draw %dt power %.2f, aim yaw %.1f (facing %.1f) pitch %.1f tilt %.2f, lands in ~%dt",
+					state, lastAim.speed(), ticks, power, yaw, player.getYRot(), pitch, lastAim.tiltDegrees(),
+					lastAim.flightTicks()));
+		} else {
+			log("SHOOT", "", String.format(Locale.ROOT, "draw %dt power %.2f%s yaw %.1f pitch %.1f",
+					ticks, power, power >= 1.0F ? " crit" : "", yaw, pitch));
+		}
 		if (!swapBack.get()) {
 			finish();
 			return;
@@ -250,31 +262,41 @@ public final class PunchBow extends Module {
 		}
 	}
 
-	/** Pitch almost straight up, tilted toward where you face; yaw stays yours so your walking is not affected. */
+	/** Camera mode: turn the camera's pitch only (turning the yaw would change where you walk). */
 	private void aimUp(LocalPlayer player) {
-		RotationUtil.turnBy(player, 0.0, boostPitch(player) - player.getXRot());
+		lastAim = computeAim(player, false);
+		RotationUtil.turnBy(player, 0.0, lastAim.pitch() - player.getXRot());
 	}
 
 	/**
-	 * The arrow inherits your walking speed but loses 1% of it per tick while you keep walking, so it lands
-	 * behind you by speed * (flight - sum of 0.99^t). When you walk forward the shot is tilted forward just enough
-	 * for the arrow's own forward speed to make up that lag; standing still it uses "Boost tilt" (which also
-	 * sets the launch direction).
+	 * Aim from your real movement over the last tick (exactly what the server passes on to the arrow). Silent aim
+	 * can point the shot along any movement direction; camera mode can only tilt toward where you face, so it
+	 * uses the forward part of your movement.
 	 */
-	private float boostPitch(LocalPlayer player) {
-		double tilt = boostTilt.get();
-		double yaw = Math.toRadians(player.getYRot());
-		double forwardSpeed = (player.getX() - player.xo) * -Math.sin(yaw) + (player.getZ() - player.zo) * Math.cos(yaw);
-		if (forwardSpeed > 0.03) {
-			int draw = boostDraw.get();
-			int flight = boostFlightTicks();
-			double carried = (1.0 - Math.pow(0.99, flight)) / 0.01;
-			double lag = forwardSpeed * (flight - carried);
-			double launchSpeed = 3.0 * BowItem.getPowerForTime(draw);
-			double compensation = Math.toDegrees(Math.asin(Math.min(1.0, lag / carried / launchSpeed)));
-			tilt = Math.max(tilt, compensation);
+	private BoostMath.Aim computeAim(LocalPlayer player, boolean anyDirection) {
+		double vx = player.getX() - player.xo;
+		double vz = player.getZ() - player.zo;
+		if (!anyDirection) {
+			double yaw = Math.toRadians(player.getYRot());
+			double fx = -Math.sin(yaw);
+			double fz = Math.cos(yaw);
+			double forward = Math.max(0.0, vx * fx + vz * fz);
+			vx = forward * fx;
+			vz = forward * fz;
 		}
-		return (float) (-90.0 + Math.min(tilt, 30.0));
+		return BoostMath.aim(vx, vz, player.getYRot(), boostDraw.get(), boostTilt.get());
+	}
+
+	private static String movementState(LocalPlayer player) {
+		double vx = player.getX() - player.xo;
+		double vz = player.getZ() - player.zo;
+		if (Math.sqrt(vx * vx + vz * vz) < BoostMath.STANDING_SPEED) {
+			return "standing";
+		}
+		if (player.isShiftKeyDown()) {
+			return "sneaking";
+		}
+		return player.isSprinting() ? "sprinting" : "walking";
 	}
 
 	/** Ends silent aim (the next movement packet carries your real pitch again) or puts the camera back. */
@@ -292,10 +314,6 @@ public final class PunchBow extends Module {
 		}
 	}
 
-	/** Flight time back onto a standing player, from the arrow-physics simulation (4t draw = 17t ... 8t = 37t). */
-	private int boostFlightTicks() {
-		return 17 + (boostDraw.get() - 4) * 5;
-	}
 
 	private void restoreSlot() {
 		if (swapBack.get() && originalSlot >= 0 && originalSlot != InventoryUtil.selectedSlot()) {
